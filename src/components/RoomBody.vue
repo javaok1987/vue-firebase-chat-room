@@ -37,11 +37,12 @@ export default {
   props: ['message', 'userName'],
   data() {
     return {
+      manager: 'tBjoEkDl47VyGVPm82xeuFWAZQr2', // 管理者.
     };
   },
   computed: {
     gmLabel() {
-      return (this.message.userName === '好房TV小編') ? 'messageBox__name gmLabel' : 'messageBox__name';
+      return (this.message.uid === this.manager) ? 'messageBox__name gmLabel' : 'messageBox__name';
     },
   },
 };

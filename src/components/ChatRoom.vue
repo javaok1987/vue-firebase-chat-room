@@ -16,7 +16,8 @@
           <div class="roomHead__button zoom"></div>
         </div>
         <img src="https://lorempixel.com/50/50/" class="roomHead__img" draggable="false">
-        <div class="roomHead__title">好房tv 聊天室</div>
+        <div class="roomHead__title">聊天室</div>
+        <div class="roomHead__notice">{{lastNotice.message}}</div>
       </div>
       <!-- 區塊：body -->
       <div id="js-roomBody" class="roomBody">
@@ -38,9 +39,12 @@
       <!-- 註解：使用:class來寫class是否顯示的判斷式{ class: 判斷式 } -->
       <div class="roomBottom" :class="{ disable: !userName }">
         <div class="roomBottom__tools">
-          <div class="roomBottom__tools_upload">
+          <div v-if="user.auth" class="roomBottom__tool_upload">
             <input type="file" accept="image/*" @change="sendImage($event)">
-            <img src="../assets/tools_file.png">
+            <img src="../assets/icon-tools__file.png">
+          </div>
+          <div v-if="user.auth" class="roomBottom__tool_pin" @click="setNotice()">
+            <img src="../assets/icon-tools__pin.png">
           </div>
         </div>
         <div class="roomBottom__input">
@@ -51,7 +55,7 @@
       </div>
     </div>
     <!-- 區塊：modal -->
-    <div v-show="userNameSet || userName == ''" class="modal">
+    <div v-show="userNameSet || userName === ''" class="modal">
       <div class="modal__container">
         <header class="modal__header">
           <h2 class="view-title">輸入名稱</h2>
@@ -61,6 +65,20 @@
           <input type="text" id="js-userName" class="userName" maxlength="20"
             @keydown.enter="saveName()" :value="userName">
           <div class="button" @click="saveName()">設定</div>
+        </div>
+        <footer class="modal__footer"></footer>
+      </div>
+    </div>
+    <div v-show="noticeSet && user.auth" class="modal">
+      <div class="modal__container">
+        <header class="modal__header">
+          <h2 class="view-title">輸入公告</h2>
+        </header>
+        <div class="modal__body">
+          <!-- 註解：使用@keydown.enter來偵測keydown enter，觸發時執行method中的saveName() -->
+          <input type="text" id="js-notice" class="userName" maxlength="20"
+            @keydown.enter="saveNotice()" :value="noticeContent">
+          <div class="button" @click="saveNotice()">設定</div>
         </div>
         <footer class="modal__footer"></footer>
       </div>
@@ -79,6 +97,7 @@ import RoomBody from '@/components/RoomBody';
 
 // msgRef = firebase中的資料表/messages/，若沒有的會自動建立
 const msgRef = firebase.database().ref('/messages/');
+const noticeRef = firebase.database().ref('/notice/');
 const storageRef = firebase.storage().ref('/images/');
 export default {
   // 指定此頁使用的name
@@ -87,10 +106,18 @@ export default {
   data() {
     return {
       userNameSet: false, // 姓名輸入框
+      noticeSet: false, // 公告輸入框
       userName: '', // 名稱
       messages: [], // 訊息內容
+      lastNotice: '', // 最新公告
+      noticeContent: '', // 公告內容
       upload: false, // 上傳進度框
       progress: '', // 上傳進度%數
+      user: { // 使用者
+        uid: '',
+        email: '',
+        auth: false,
+      },
     };
   },
   components: {
@@ -108,6 +135,10 @@ export default {
       const vm = this;
       vm.userNameSet = true;
     },
+    setNotice() {
+      const vm = this;
+      vm.noticeSet = true;
+    },
     /** 儲存設定名稱 */
     saveName() {
       // vue的mtthod中this是指export中這整塊的資料
@@ -119,6 +150,21 @@ export default {
       // 這裡的vm.userName(this.userName)就是data()裡面的userName
       vm.userName = userName;
       vm.userNameSet = false;
+    },
+    /** 儲存公告 */
+    saveNotice() {
+      const vm = this;
+      const notice = document.querySelector('#js-notice').value;
+      if (notice.trim() === '') {
+        return;
+      }
+      noticeRef.push({
+        type: 'text',
+        message: notice.trim(),
+        timeStamp: vm.getTime(),
+      });
+      vm.noticeContent = notice;
+      vm.noticeSet = false;
     },
     /** 取得時間 */
     getTime() {
@@ -149,6 +195,8 @@ export default {
         message: message.value,
         // 取得時間，這裡的vm.getTime()就是method中的getTime
         timeStamp: vm.getTime(),
+        uid: vm.user.uid,
+        auth: vm.user.auth,
       });
       // 清空輸入欄位並避免enter產生的空白換行
       message.value = '';
@@ -222,6 +270,36 @@ export default {
     msgRef.on('value', (snapshot) => {
       const val = snapshot.val();
       vm.messages = val;
+    });
+
+    noticeRef.on('value', (snapshot) => {
+      const val = snapshot.val();
+      const temp = { ...val };
+      const { [Object.keys(temp).pop()]: lastItem } = temp;
+      vm.lastNotice = lastItem;
+    });
+
+    // 設置身份驗證狀態觀察者並獲取用戶數據
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        vm.user = {
+          uid: user.uid,
+          email: user.email,
+          auth: true,
+        };
+        // User is signed in.
+        // var displayName = user.displayName;
+        // var email = user.email;
+        // var emailVerified = user.emailVerified;
+        // var photoURL = user.photoURL;
+        // var isAnonymous = user.isAnonymous;
+        // var uid = user.uid;
+        // var providerData = user.providerData;
+      } else {
+        // User is signed out.
+        // ...
+      }
+      console.log('登入狀態', vm.user.auth);
     });
   },
   // update是vue的生命週期之一，在元件渲染完成後執行
