@@ -123,7 +123,7 @@
   color: #35393d;
   letter-spacing: 0.6px;
   background-color: #e3e8eb;
-  border-radius: 12px;
+  border-radius: 0 12px 12px 12px;
   line-height: 1.5;
   text-align: left;
   word-break: break-all;
@@ -187,6 +187,7 @@
 .messageBox--self .messageBox__message {
   background-color: #aff47e;
   margin-right: 25px;
+  border-radius: 12px 0 12px 12px;
 }
 .messageBox--self .messageBox__message__text {
   padding: 8px 10px 9px 11px;
@@ -319,7 +320,7 @@
   cursor: pointer;
 }
 .gmLabel{
-  color: #ff625a !important;
+  color: #f4a !important;
 }
 
 

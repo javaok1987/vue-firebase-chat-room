@@ -296,6 +296,7 @@ export default {
 
     // 設置身份驗證狀態觀察者並獲取用戶數據
     firebase.auth().onAuthStateChanged((user) => {
+      console.log('user', user.uid);
       if (user) {
         // User is signed in.
         vm.user = {

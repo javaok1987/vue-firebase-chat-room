@@ -13,14 +13,13 @@
             </div>
             <div v-if="message.type == 'image'" class="messageBox__image"><img :src="message.message"></div>
           </div>
-          <!-- <div class="messageBox__time">{{message.timeStamp}}</div> -->
           <div class="messageBox__time">{{ message.timeStamp | moment('YYYY-MM-DD HH:mm:ss') }}</div>
         </div>
       </div>
       <!-- 區塊：self -->
       <div v-if="message.userName == userName">
         <div class="messageBox messageBox--self">
-          <div class="messageBox__time">{{message.timeStamp}}</div>
+          <div class="messageBox__time">{{ message.timeStamp | moment('YYYY-MM-DD HH:mm:ss') }}</div>
           <div class="messageBox__content">
             <div v-if="message.type == 'text'" class="messageBox__message">
               <div class="messageBox__text">{{message.message}}</div>
