@@ -13,7 +13,8 @@
             </div>
             <div v-if="message.type == 'image'" class="messageBox__image"><img :src="message.message"></div>
           </div>
-          <div class="messageBox__time">{{message.timeStamp}}</div>
+          <!-- <div class="messageBox__time">{{message.timeStamp}}</div> -->
+          <div class="messageBox__time">{{ message.timeStamp | moment('YYYY-MM-DD HH:mm:ss') }}</div>
         </div>
       </div>
       <!-- 區塊：self -->

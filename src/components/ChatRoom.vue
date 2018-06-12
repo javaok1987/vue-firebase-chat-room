@@ -50,7 +50,7 @@
         <div class="roomBottom__input">
           <!-- 若要再帶入原生js的event(e)到function中，必須使用$event當參數傳入 -->
           <textarea id="js-message" class="roomBottom__input__textarea"
-            :class="{ disable: !userName }" @keydown.enter="sendMessage($event)"></textarea>
+            :class="{ disable: !userName }" @keypress.enter="sendMessage($event)"></textarea>
         </div>
       </div>
     </div>
@@ -61,9 +61,9 @@
           <h2 class="view-title">輸入名稱</h2>
         </header>
         <div class="modal__body">
-          <!-- 註解：使用@keydown.enter來偵測keydown enter，觸發時執行method中的saveName() -->
+          <!-- 註解：使用@keypress.enter來偵測keypress enter，觸發時執行method中的saveName() -->
           <input type="text" id="js-userName" class="userName" maxlength="20"
-            @keydown.enter="saveName()" :value="userName">
+            @keypress.enter="saveName()" :value="userName">
           <div class="button" @click="saveName()">設定</div>
         </div>
         <footer class="modal__footer"></footer>
@@ -75,9 +75,9 @@
           <h2 class="view-title">輸入公告</h2>
         </header>
         <div class="modal__body">
-          <!-- 註解：使用@keydown.enter來偵測keydown enter，觸發時執行method中的saveName() -->
+          <!-- 註解：使用@keypress.enter來偵測keypress enter，觸發時執行method中的saveName() -->
           <input type="text" id="js-notice" class="userName" maxlength="20"
-            @keydown.enter="saveNotice()" :value="noticeContent">
+            @keypress.enter="saveNotice()" :value="noticeContent">
           <div class="button" @click="saveNotice()">設定</div>
         </div>
         <footer class="modal__footer"></footer>
@@ -90,6 +90,7 @@
 
 /* global firebase */
 /* eslint-env es6 */
+/* eslint-disable no-console */
 
 import '@/assets/css/chat-room.css';
 
@@ -108,7 +109,7 @@ export default {
       userNameSet: false, // 姓名輸入框
       noticeSet: false, // 公告輸入框
       userName: '', // 名稱
-      messages: [], // 訊息內容
+      messages: {}, // 訊息內容
       lastNotice: '', // 最新公告
       noticeContent: '', // 公告內容
       upload: false, // 上傳進度框
@@ -123,22 +124,18 @@ export default {
   components: {
     'room-body': RoomBody,
   },
-  // computed: {
-  //   gmLabel() {
-  //     return 'messageBox__name';
-  //   },
-  // },
+
   // 這個頁面的functions
   methods: {
     /** 彈出設定視窗 */
     setName() {
-      const vm = this;
-      vm.userNameSet = true;
+      this.userNameSet = true;
     },
+
     setNotice() {
-      const vm = this;
-      vm.noticeSet = true;
+      this.noticeSet = true;
     },
+
     /** 儲存設定名稱 */
     saveName() {
       // vue的mtthod中this是指export中這整塊的資料
@@ -151,6 +148,7 @@ export default {
       vm.userName = userName;
       vm.userNameSet = false;
     },
+
     /** 儲存公告 */
     saveNotice() {
       const vm = this;
@@ -166,13 +164,17 @@ export default {
       vm.noticeContent = notice;
       vm.noticeSet = false;
     },
+
     /** 取得時間 */
     getTime() {
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes();
-      return `${hours >= 12 ? '下午' : '上午'} ${hours}:${minutes < 10 ? `0${minutes}` : minutes}`;
+      // 由 firebase 提供系統時間.
+      // const now = new Date();
+      // const hours = now.getHours();
+      // const minutes = now.getMinutes();
+      // return `${hours >= 12 ? '下午' : '上午'} ${hours}:${minutes < 10 ? `0${minutes}` : minutes}`;
+      return firebase.database.ServerValue.TIMESTAMP;
     },
+
     /** 傳送訊息 */
     sendMessage(e) {
       const vm = this;
@@ -203,6 +205,7 @@ export default {
       e.preventDefault();
       return false;
     },
+
     /** 傳送圖片 */
     sendImage(e) {
       const vm = this;
@@ -253,6 +256,7 @@ export default {
         },
       );
     },
+
     /** 顯示更多 */
     readMore(e) {
       // 把內容高度限制取消
@@ -264,12 +268,13 @@ export default {
       e.target.setAttribute('style', 'display: none;');
     },
   },
+
+
   // mounted是vue的生命週期之一，代表模板已編譯完成，已經取值準備渲染元件了
   mounted() {
     const vm = this;
     msgRef.on('value', (snapshot) => {
-      const val = snapshot.val();
-      vm.messages = val;
+      vm.messages = (snapshot.val() === null) ? {} : snapshot.val();
     });
 
     noticeRef.on('value', (snapshot) => {
@@ -279,22 +284,25 @@ export default {
       vm.lastNotice = lastItem;
     });
 
+    // login
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION)
+      .then(() => firebase.auth().signInWithEmailAndPassword('write@housefun.com.tw', 'writewrite'))
+      .catch((error) => {
+        // Handle Errors here.
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        console.log(errorCode, errorMessage);
+      });
+
     // 設置身份驗證狀態觀察者並獲取用戶數據
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
+        // User is signed in.
         vm.user = {
           uid: user.uid,
           email: user.email,
           auth: true,
         };
-        // User is signed in.
-        // var displayName = user.displayName;
-        // var email = user.email;
-        // var emailVerified = user.emailVerified;
-        // var photoURL = user.photoURL;
-        // var isAnonymous = user.isAnonymous;
-        // var uid = user.uid;
-        // var providerData = user.providerData;
       } else {
         // User is signed out.
         // ...
@@ -302,6 +310,8 @@ export default {
       console.log('登入狀態', vm.user.auth);
     });
   },
+
+
   // update是vue的生命週期之一，在元件渲染完成後執行
   updated() {
     // 判斷內容高度超過300就隱藏起來，把"顯示更多"按紐打開
